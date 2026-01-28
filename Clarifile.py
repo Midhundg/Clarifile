@@ -111,11 +111,6 @@ def answer_question(text, question):
             return ", ".join(certs)
 
     # ---------- FALLBACK: keyword-based ----------
-    STOP_WORDS = {
-        "what", "is", "the", "in", "of", "a", "an", "to", "for",
-        "and", "with", "on", "at", "by", "from"
-    }
-
     sentences = re.split(r'(?<=[.!?]) +', text)
     question_words = [
         w.lower()
@@ -136,3 +131,65 @@ def answer_question(text, question):
         return best_sentence
 
     return "❌ Answer not found in document."
+
+st.markdown("---")
+
+# File Upload Section
+uploaded_file = st.file_uploader(
+    "📤 Choose a document",
+    type=["pdf", "docx", "txt", "csv", "xlsx"],
+    key="file_uploader"
+)
+
+st.markdown("---")
+
+if uploaded_file is not None:
+    # Determine file type and read content
+    file_ext = uploaded_file.name.split('.')[-1].lower()
+    
+    try:
+        if file_ext == "pdf":
+            text = read_pdf(uploaded_file)
+        elif file_ext == "docx":
+            text = read_docx(uploaded_file)
+        elif file_ext == "txt":
+            text = read_txt(uploaded_file)
+        elif file_ext == "csv":
+            text = read_csv(uploaded_file)
+        elif file_ext == "xlsx":
+            text = read_excel(uploaded_file)
+        
+        # Display document preview
+        with st.expander("📋 Document Preview", expanded=False):
+            st.text_area("Content", text, height=200, disabled=True)
+        
+        # Create tabs for different analyses
+        tab1, tab2, tab3, tab4 = st.tabs(["📝 Summary", "⭐ Key Points", "🔑 Keywords", "❓ Q&A"])
+        
+        with tab1:
+            st.subheader("Summary")
+            summary = summarize_text(text)
+            st.write(summary)
+        
+        with tab2:
+            st.subheader("Key Points")
+            key_points = extract_key_points(text)
+            for i, point in enumerate(key_points, 1):
+                st.write(f"{i}. {point}")
+        
+        with tab3:
+            st.subheader("Keywords")
+            keywords = extract_keywords(text)
+            st.write(", ".join(keywords))
+        
+        with tab4:
+            st.subheader("Ask a Question")
+            question = st.text_input("Enter your question about the document:")
+            if question:
+                answer = answer_question(text, question)
+                st.write(answer)
+    
+    except Exception as e:
+        st.error(f"❌ Error reading file: {str(e)}")
+else:
+    st.info("👆 Upload a document to get started!")
